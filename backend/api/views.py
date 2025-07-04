@@ -1,4 +1,3 @@
-import requests
 from rest_framework import generics, status, permissions, filters
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -12,6 +11,7 @@ from .serializers import (
     LikeSerializer, InboxItemSerializer, NodeSerializer
 )
 from .permissions import IsAuthorOrReadOnly, IsApprovedUser, IsAdminOrReadOnly
+from .federation import send_to_remote_inbox
 from users.models import Author, Follow
 from users.serializers import AuthorSerializer
 
@@ -71,16 +71,11 @@ class PostListCreateView(generics.ListCreateAPIView):
         for follow in followers:
             follower = follow.follower
             if follower.is_remote:
-                # Send to remote node's inbox
-                # TODO: add proper error handling here, maybe retry on failure
-                try:
-                    inbox_url = f"{follower.host}/api/authors/{follower.id}/inbox/"
-                    # We need credentials to send to remote nodes
-                    # For now just try basic auth
-                    requests.post(inbox_url, json=post_data, timeout=5)
-                except Exception as e:
-                    # Don't fail the whole request if federation fails
-                    print(f"Failed to send to remote inbox: {e}")
+                # Send to remote node's inbox using the federation module
+                success = send_to_remote_inbox(follower.url, post_data)
+                if not success:
+                    # Log it but don't fail the whole request
+                    print(f"Warning: Failed to send post to remote inbox for {follower.username}")
             else:
                 # Local follower - just create an inbox item directly
                 InboxItem.objects.create(
