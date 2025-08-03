@@ -71,6 +71,9 @@ function Navbar() {
                 {isAuthenticated ? (
                     <>
                         <li>
+                            <Link to="/inbox" style={styles.link}>Inbox</Link>
+                        </li>
+                        <li>
                             <Link to="/create-post" style={styles.link}>+ Post</Link>
                         </li>
                         <li>

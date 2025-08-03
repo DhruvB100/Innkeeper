@@ -9,6 +9,7 @@ import Profile from './pages/Profile';
 import PostDetail from './pages/PostDetail';
 import CreatePost from './pages/CreatePost';
 import Authors from './pages/Authors';
+import Inbox from './pages/Inbox';
 
 // Component to protect routes that require login
 function PrivateRoute({ children }) {
@@ -82,6 +83,14 @@ function AppContent() {
                     <Route
                         path="/authors"
                         element={<Authors />}
+                    />
+                    <Route
+                        path="/inbox"
+                        element={
+                            <PrivateRoute>
+                                <Inbox />
+                            </PrivateRoute>
+                        }
                     />
                     {/* Catch all - redirect to home */}
                     <Route path="*" element={<Navigate to="/" replace />} />
