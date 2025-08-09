@@ -261,7 +261,7 @@ class FeedView(APIView):
         posts = Post.objects.filter(
             Q(author=request.user) |
             Q(author_id__in=following_ids, visibility__in=['PUBLIC', 'FRIENDS'])
-        ).select_related('author').order_by('-created_at')[:50]  # limit to 50 posts
+        ).select_related('author').order_by('-created_at').distinct()[:50]  # limit to 50 posts, distinct fixes duplicate issue
 
         serializer = PostSerializer(posts, many=True, context={'request': request})
         return Response(serializer.data)
