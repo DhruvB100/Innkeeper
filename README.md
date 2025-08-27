@@ -83,4 +83,4 @@ The federation system works using an inbox/outbox pattern. When a user creates a
 
 ## Notes
 
-This was built as a group project for CMPUT 404. There are probably some rough edges but the core functionality works.
+This was built as a group project. There are probably some rough edges but the core functionality works.
