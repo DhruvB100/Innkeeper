@@ -7,11 +7,13 @@ class CommentSerializer(serializers.ModelSerializer):
     """Serializer for comments"""
 
     author_info = AuthorSerializer(source='author', read_only=True)
+    post = serializers.UUIDField(source='post_id', read_only=True)
+    author = serializers.UUIDField(source='author_id', read_only=True)
 
     class Meta:
         model = Comment
         fields = ['id', 'post', 'author', 'author_info', 'content', 'content_type', 'url', 'created_at']
-        read_only_fields = ['id', 'author', 'url', 'created_at']
+        read_only_fields = ['id', 'post', 'author', 'url', 'created_at']
 
 
 class LikeSerializer(serializers.ModelSerializer):
@@ -32,6 +34,7 @@ class PostSerializer(serializers.ModelSerializer):
     """
 
     author_info = AuthorSerializer(source='author', read_only=True)
+    author = serializers.UUIDField(source='author_id', read_only=True)
     comments_count = serializers.SerializerMethodField()
     likes_count = serializers.SerializerMethodField()
     # Whether the current user has liked this post

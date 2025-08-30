@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import { jwtDecode } from 'jwt-decode';
+import jwtDecode from 'jwt-decode';
 import api from '../utils/api';
 
 // Create the context
@@ -8,6 +8,40 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);  // loading while we check if user is logged in
+
+    const fetchCurrentUser = useCallback(async (token) => {
+        try {
+            const response = await api.get('/api/auth/me/');
+            setUser(response.data);
+        } catch (error) {
+            console.error('Failed to fetch user:', error);
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const refreshToken = useCallback(async () => {
+        const refresh = localStorage.getItem('refresh_token');
+        if (!refresh) {
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const response = await api.post('/api/auth/refresh/', { refresh });
+            const newToken = response.data.access;
+            localStorage.setItem('access_token', newToken);
+            await fetchCurrentUser(newToken);
+        } catch (error) {
+            // Refresh failed, user needs to log in again
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            setUser(null);
+            setLoading(false);
+        }
+    }, [fetchCurrentUser]);
 
     // Check if there's a token in localStorage on app load
     useEffect(() => {
@@ -33,41 +67,7 @@ export function AuthProvider({ children }) {
         } else {
             setLoading(false);
         }
-    }, []);
-
-    const fetchCurrentUser = async (token) => {
-        try {
-            const response = await api.get('/api/auth/me/');
-            setUser(response.data);
-        } catch (error) {
-            console.error('Failed to fetch user:', error);
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const refreshToken = async () => {
-        const refresh = localStorage.getItem('refresh_token');
-        if (!refresh) {
-            setLoading(false);
-            return;
-        }
-
-        try {
-            const response = await api.post('/api/auth/refresh/', { refresh });
-            const newToken = response.data.access;
-            localStorage.setItem('access_token', newToken);
-            await fetchCurrentUser(newToken);
-        } catch (error) {
-            // Refresh failed, user needs to log in again
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            setUser(null);
-            setLoading(false);
-        }
-    };
+    }, [fetchCurrentUser, refreshToken]);
 
     const login = async (username, password) => {
         const response = await api.post('/api/auth/login/', { username, password });

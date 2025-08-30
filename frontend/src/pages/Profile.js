@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import PostCard from '../components/PostCard';
 import { useAuth } from '../context/AuthContext';
@@ -97,12 +97,19 @@ function Profile() {
 
     const isOwnProfile = user && user.id === authorId;
 
-    useEffect(() => {
-        fetchAuthor();
-        fetchAuthorPosts();
-    }, [authorId]);
+    const checkFollowStatus = useCallback(async () => {
+        try {
+            // Get our following list and check if this author is in it
+            const response = await api.get(`/api/authors/${user.id}/following/`);
+            const following = response.data.results || response.data;
+            const isFollow = following.some(f => f.following === authorId);
+            setIsFollowing(isFollow);
+        } catch (err) {
+            console.error('Failed to check follow status:', err);
+        }
+    }, [user, authorId]);
 
-    const fetchAuthor = async () => {
+    const fetchAuthor = useCallback(async () => {
         try {
             const response = await api.get(`/api/authors/${authorId}/`);
             setAuthor(response.data);
@@ -117,9 +124,9 @@ function Profile() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [authorId, isAuthenticated, isOwnProfile, checkFollowStatus]);
 
-    const fetchAuthorPosts = async () => {
+    const fetchAuthorPosts = useCallback(async () => {
         try {
             const response = await api.get(`/api/authors/${authorId}/posts/`);
             const data = response.data;
@@ -129,19 +136,12 @@ function Profile() {
         } finally {
             setPostsLoading(false);
         }
-    };
+    }, [authorId]);
 
-    const checkFollowStatus = async () => {
-        try {
-            // Get our following list and check if this author is in it
-            const response = await api.get(`/api/authors/${user.id}/following/`);
-            const following = response.data.results || response.data;
-            const isFollow = following.some(f => f.following === authorId);
-            setIsFollowing(isFollow);
-        } catch (err) {
-            console.error('Failed to check follow status:', err);
-        }
-    };
+    useEffect(() => {
+        fetchAuthor();
+        fetchAuthorPosts();
+    }, [fetchAuthor, fetchAuthorPosts]);
 
     const handleFollow = async () => {
         if (!isAuthenticated) return;

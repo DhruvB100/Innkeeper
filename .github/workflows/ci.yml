@@ -47,9 +47,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            pg_isready -h 127.0.0.1 -p 5432 -U postgres && exit 0
+            sleep 1
+          done
+          exit 1
+
       - name: Run migrations
         env:
-          DATABASE_URL: postgres://postgres:postgres@postgres:5432/innkeeper_test
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/innkeeper_test
+          PGHOST: 127.0.0.1
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: innkeeper_test
           SECRET_KEY: test-secret-key-ci
           DEBUG: True
         run: |
@@ -58,7 +70,11 @@ jobs:
 
       - name: Run tests
         env:
-          DATABASE_URL: postgres://postgres:postgres@postgres:5432/innkeeper_test
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/innkeeper_test
+          PGHOST: 127.0.0.1
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: innkeeper_test
           SECRET_KEY: test-secret-key-ci
           DEBUG: True
         run: |

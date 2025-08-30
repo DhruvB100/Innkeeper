@@ -87,7 +87,7 @@ const styles = {
 };
 
 function CommentSection({ postId, initialComments = [] }) {
-    const { user, isAuthenticated } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [comments, setComments] = useState(initialComments);
     const [newComment, setNewComment] = useState('');
     const [submitting, setSubmitting] = useState(false);

@@ -96,7 +96,7 @@ const styles = {
 
 function CreatePost() {
     const navigate = useNavigate();
-    const { user, isApproved } = useAuth();
+    const { isApproved } = useAuth();
     const [formData, setFormData] = useState({
         title: '',
         content: '',

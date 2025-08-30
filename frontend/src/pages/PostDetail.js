@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import CommentSection from '../components/CommentSection';
 import { useAuth } from '../context/AuthContext';
@@ -107,11 +107,7 @@ function PostDetail() {
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
 
-    useEffect(() => {
-        fetchPost();
-    }, [postId]);
-
-    const fetchPost = async () => {
+    const fetchPost = useCallback(async () => {
         try {
             const response = await api.get(`/api/posts/${postId}/`);
             setPost(response.data);
@@ -127,7 +123,11 @@ function PostDetail() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [postId]);
+
+    useEffect(() => {
+        fetchPost();
+    }, [fetchPost]);
 
     const handleLike = async () => {
         if (!isAuthenticated) {

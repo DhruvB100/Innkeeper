@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import PostCard from '../components/PostCard';
 import { useAuth } from '../context/AuthContext';
@@ -72,11 +72,7 @@ function Home() {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
 
-    useEffect(() => {
-        loadPosts(1);
-    }, [activeTab]);
-
-    const loadPosts = async (pageNum = 1) => {
+    const loadPosts = useCallback(async (pageNum = 1) => {
         setLoading(true);
         setError('');
         try {
@@ -108,7 +104,11 @@ function Home() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [activeTab, isAuthenticated]);
+
+    useEffect(() => {
+        loadPosts(1);
+    }, [loadPosts]);
 
     const handleLoadMore = () => {
         loadPosts(page + 1);

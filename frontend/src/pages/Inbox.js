@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 
@@ -78,13 +77,7 @@ function Inbox() {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (user) {
-            fetchInbox();
-        }
-    }, [user]);
-
-    const fetchInbox = async () => {
+    const fetchInbox = useCallback(async () => {
         try {
             const response = await api.get(`/api/authors/${user.id}/inbox/`);
             setItems(response.data.items || []);
@@ -93,7 +86,13 @@ function Inbox() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user]);
+
+    useEffect(() => {
+        if (user) {
+            fetchInbox();
+        }
+    }, [user, fetchInbox]);
 
     const clearInbox = async () => {
         if (!window.confirm('Clear all inbox notifications?')) return;
