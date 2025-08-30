@@ -92,7 +92,9 @@ function Profile() {
     const [loading, setLoading] = useState(true);
     const [postsLoading, setPostsLoading] = useState(true);
     const [isFollowing, setIsFollowing] = useState(false);
+    const [followPending, setFollowPending] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
+    const [pendingRequests, setPendingRequests] = useState([]);
     const [error, setError] = useState('');
 
     const isOwnProfile = user && user.id === authorId;
@@ -102,21 +104,34 @@ function Profile() {
             // Get our following list and check if this author is in it
             const response = await api.get(`/api/authors/${user.id}/following/`);
             const following = response.data.results || response.data;
-            const isFollow = following.some(f => f.following === authorId);
-            setIsFollowing(isFollow);
+            const match = following.find(f => String(f.following) === String(authorId));
+            setIsFollowing(!!match);
+            setFollowPending(match ? !match.is_accepted : false);
         } catch (err) {
             console.error('Failed to check follow status:', err);
         }
     }, [user, authorId]);
+
+    const fetchPendingRequests = useCallback(async () => {
+        try {
+            const response = await api.get(`/api/authors/${authorId}/followers/`);
+            const followers = response.data.results || response.data;
+            setPendingRequests(followers.filter(f => !f.is_accepted));
+        } catch (err) {
+            console.error('Failed to load follow requests:', err);
+        }
+    }, [authorId]);
 
     const fetchAuthor = useCallback(async () => {
         try {
             const response = await api.get(`/api/authors/${authorId}/`);
             setAuthor(response.data);
 
-            // Check if we're following this person
             if (isAuthenticated && !isOwnProfile) {
                 checkFollowStatus();
+            }
+            if (isAuthenticated && isOwnProfile) {
+                fetchPendingRequests();
             }
         } catch (err) {
             console.error('Failed to load author:', err);
@@ -124,7 +139,7 @@ function Profile() {
         } finally {
             setLoading(false);
         }
-    }, [authorId, isAuthenticated, isOwnProfile, checkFollowStatus]);
+    }, [authorId, isAuthenticated, isOwnProfile, checkFollowStatus, fetchPendingRequests]);
 
     const fetchAuthorPosts = useCallback(async () => {
         try {
@@ -151,20 +166,27 @@ function Profile() {
             if (isFollowing) {
                 await api.delete(`/api/authors/${authorId}/follow/`);
                 setIsFollowing(false);
+                setFollowPending(false);
             } else {
                 await api.post(`/api/authors/${authorId}/follow/`);
                 setIsFollowing(true);
-                // Update follower count
-                setAuthor(prev => ({
-                    ...prev,
-                    followers_count: prev.followers_count + 1
-                }));
+                setFollowPending(true);
             }
         } catch (err) {
             console.error('Failed to follow/unfollow:', err);
             alert(err.response?.data?.error || 'Failed to update follow status');
         } finally {
             setFollowLoading(false);
+        }
+    };
+
+    const handleAcceptFollow = async (followerId) => {
+        try {
+            await api.post(`/api/authors/${authorId}/followers/${followerId}/accept/`);
+            setPendingRequests(prev => prev.filter(f => String(f.follower) !== String(followerId)));
+            setAuthor(prev => ({ ...prev, followers_count: prev.followers_count + 1 }));
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to accept follow request');
         }
     };
 
@@ -217,7 +239,7 @@ function Profile() {
                             onClick={handleFollow}
                             disabled={followLoading}
                         >
-                            {followLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
+                            {followLoading ? '...' : isFollowing ? (followPending ? 'Requested' : 'Following') : 'Follow'}
                         </button>
                     )}
 
@@ -251,6 +273,28 @@ function Profile() {
                     </div>
                 </div>
             </div>
+
+            {isOwnProfile && pendingRequests.length > 0 && (
+                <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                    <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1a1a2e', marginBottom: '12px' }}>
+                        Follow Requests ({pendingRequests.length})
+                    </h2>
+                    {pendingRequests.map(req => {
+                        const name = req.follower_info?.display_name || req.follower_info?.username || 'Someone';
+                        return (
+                            <div key={req.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+                                <span style={{ fontSize: '14px', color: '#444' }}>{name} wants to follow you</span>
+                                <button
+                                    onClick={() => handleAcceptFollow(req.follower)}
+                                    style={{ backgroundColor: '#e94560', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 16px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}
+                                >
+                                    Accept
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
 
             <h2 style={{ fontSize: '18px', marginBottom: '16px', color: '#333' }}>
                 Posts by {displayName}

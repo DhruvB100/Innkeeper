@@ -7,7 +7,7 @@ to override the token generation to add that check.
 """
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 
 class InkeeperTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -22,7 +22,7 @@ class InkeeperTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # Check if the user is approved
         if not self.user.is_approved:
-            raise serializers.ValidationError(
+            raise PermissionDenied(
                 'Your account is pending approval. Please wait for an admin to approve your account.'
             )
 

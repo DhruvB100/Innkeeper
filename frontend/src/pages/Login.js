@@ -74,6 +74,38 @@ const styles = {
     }
 };
 
+function getErrorMessage(error) {
+    const data = error.response?.data;
+
+    if (!data) {
+        return '';
+    }
+
+    if (typeof data === 'string') {
+        return data;
+    }
+
+    if (typeof data.detail === 'string') {
+        return data.detail;
+    }
+
+    if (Array.isArray(data.non_field_errors) && typeof data.non_field_errors[0] === 'string') {
+        return data.non_field_errors[0];
+    }
+
+    for (const value of Object.values(data)) {
+        if (typeof value === 'string') {
+            return value;
+        }
+
+        if (Array.isArray(value) && typeof value[0] === 'string') {
+            return value[0];
+        }
+    }
+
+    return '';
+}
+
 function Login() {
     const navigate = useNavigate();
     const { login } = useAuth();
@@ -95,10 +127,12 @@ function Login() {
             navigate('/');
         } catch (err) {
             console.error('Login error:', err);
-            if (err.response?.status === 401) {
+            const message = getErrorMessage(err);
+
+            if (message) {
+                setError(message);
+            } else if (err.response?.status === 401) {
                 setError('Invalid username or password');
-            } else if (err.response?.data?.detail) {
-                setError(err.response.data.detail);
             } else {
                 setError('Something went wrong. Please try again.');
             }

@@ -56,6 +56,11 @@ class Author(AbstractUser):
         return self.username
 
     def save(self, *args, **kwargs):
+        # Superusers should be able to access the app immediately.
+        if self.is_superuser or self.is_staff:
+            self.is_approved = True
+            self.role = 'admin'
+
         # Auto-generate the URL based on the host and id
         if not self.host:
             self.host = settings.NODE_URL

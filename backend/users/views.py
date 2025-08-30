@@ -121,7 +121,7 @@ class FollowersListView(generics.ListAPIView):
 
     def get_queryset(self):
         author_id = self.kwargs['pk']
-        return Follow.objects.filter(following_id=author_id, is_accepted=True)
+        return Follow.objects.filter(following_id=author_id)
 
 
 class FollowingListView(generics.ListAPIView):
@@ -131,7 +131,7 @@ class FollowingListView(generics.ListAPIView):
 
     def get_queryset(self):
         author_id = self.kwargs['pk']
-        return Follow.objects.filter(follower_id=author_id, is_accepted=True)
+        return Follow.objects.filter(follower_id=author_id)
 
 
 @api_view(['GET'])

@@ -92,6 +92,39 @@ class LoginTests(APITestCase):
         }, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_unapproved_user_login_returns_pending_approval_message(self):
+        """Unapproved accounts should get a clear login error"""
+        Author.objects.create_user(
+            username='pendinguser',
+            password='testpass123',
+            email='pending@test.com',
+            is_approved=False
+        )
+        url = reverse('token_obtain_pair')
+        response = self.client.post(url, {
+            'username': 'pendinguser',
+            'password': 'testpass123'
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(
+            response.data['detail'],
+            'Your account is pending approval. Please wait for an admin to approve your account.'
+        )
+
+
+class AuthorModelTests(TestCase):
+    """Tests for Author model behavior"""
+
+    def test_superuser_is_auto_approved_and_admin(self):
+        """Superusers should be approved automatically"""
+        user = Author.objects.create_superuser(
+            username='adminuser',
+            password='adminpass123',
+            email='admin@test.com'
+        )
+        self.assertTrue(user.is_approved)
+        self.assertEqual(user.role, 'admin')
+
 
 class AuthorTests(APITestCase):
     """Tests for author endpoints"""
